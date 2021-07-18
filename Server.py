@@ -221,7 +221,6 @@ class Server_handing:
                     p = str(p)[19:29]
                     purchase.append(p)
                     # print(p[19:29])
-                    print(p)
                     if run and run % 2 == 0:
                         self.list_price[gold_type(run)] = []
                         self.list_price[gold_type(run)].append(purchase[run - 2])

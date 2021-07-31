@@ -1,3 +1,4 @@
+from os import waitpid
 from tkinter import *
 from tkinter import ttk
 from tkinter import messagebox
@@ -9,15 +10,17 @@ import socket
 #define type-communication between client and server
 Allow = "allow"
 Not_allow = "not_allowed"
-SUCCESS = "1"
-FAIL = "0"
-ERROR = "-1"
+
 LOGIN = "2"
 REGISTER = "3"
 GOLD_SEARCHING = "4"
 DISCONNECT = "5"
 COMMUNICATION_TYPE = "utf-8"
 BUFSIZE = 1024
+
+SUCCESS = "1"
+FAIL = "0"
+ERROR = "-1"
 SECOND = 100
 MINUTE = 60 * SECOND
 
@@ -60,13 +63,12 @@ class Client_handle:
         try:
             self.client.connect((self.input_ip.get(), self.PORT))
             self.Loginform()
-
         except Exception as error:
             messagebox.showerror('Error', f'Error Due to : {str(error)}', parent=self.root)
 
     def Loginform(self):
         self.window = "login"
-
+        
         Frame_login = Frame(self.root, bg="white")
         Frame_login.place(x=0, y=0, relheight=1, relwidth=1)
 
@@ -89,11 +91,9 @@ class Client_handle:
         self.password = Entry(frame_input, font=("Comic Sans MS", 15, "bold"), show='*', bg='lightgray')
         self.password.place(x=30, y=245, width=270, height=35)
 
-        #this button need to develop more-------------------------------------------------------------------------------
         btn1 = Button(frame_input, text="forgot password?", cursor='hand2', font=('calibri', 10), bg='white',
                       fg='black', bd=0)
         btn1.place(x=125, y=305)
-        #---------------------------------------------------------------------------------------------------------------
 
         btn2 = Button(frame_input, text="Login", command=self.login, cursor="hand2", font=("Comic Sans MS", 15),
                       fg="white", bg="orangered", bd=0, width=15, height=1)
@@ -106,6 +106,8 @@ class Client_handle:
         self.email_txt.focus()
 
     def login(self):
+        
+
         if self.email_txt.get() == "" or self.password.get() == "":
             messagebox.showerror("Error", "All fields are required", parent=self.root)
         else:
@@ -126,17 +128,17 @@ class Client_handle:
                     self.email_txt.focus()
                 else:
                     messagebox.showerror('Error', f'Error Due to : {str(message)}', parent=self.root)
-            except ConnectionAbortedError as error:
+            except Exception as error:
                 messagebox.showerror("Error", f"Error due to:{str(error)}", parent=self.root)
                 self.client.close()
             except ConnectionResetError as error:
                 messagebox.showerror("Error", f"Error due to:{str(error)}", parent=self.root)
                 self.client.close()
                 self.setting_socket()
-
+    
     def Registerform(self):
         self.window = "regist"
-
+        
         Frame_login1 = Frame(self.root, bg="white")
         Frame_login1.place(x=0, y=0, relheight=1, relwidth=1)
         self.img = ImageTk.PhotoImage(file=r"image/background.jpg")
@@ -211,7 +213,7 @@ class Client_handle:
 
     def search_gold(self):
         self.window = "search"
-
+        
         frame_user = Frame(self.root, bg="white")
         frame_user.place(x=0, y=0, relheight=1, relwidth=1)
         self.img = ImageTk.PhotoImage(file=r"image/gold2.jpg")
@@ -241,6 +243,8 @@ class Client_handle:
         user_label2.place(x=45, y=180)
         self.cal = Calendar(user_input,mindate=datetime.date(day=1, month=1, year=2018), maxdate=datetime.date.today(),
                             date_pattern="yyyy-mm-dd", selectmode="day")
+                            
+        self.cal.selection_clear()
         self.cal.place(x=45, y=220, height=150, width=300)
 
         def grad_date():
@@ -263,6 +267,7 @@ class Client_handle:
     def search(self):
         date = self.cal.get_date()
         type = self.gold_type.get()
+
         try:
             self.client.send(bytes(GOLD_SEARCHING + "/" +
                                        self.gold_type.get() + "/" +
@@ -271,14 +276,16 @@ class Client_handle:
             print(ret)
             out = "Date: " + date + "\nType: " + type + "\nBuying-price: " + ret[0] + "VND\nSelling-price: " + ret[1] + "VND"
             if ret:
-                self.ans.config(text=out, font="Arial 20 bold", fg="black")
+                self.ans.config(text=out, font="Arial 20 bold", fg="black") 
+
         except ConnectionAbortedError as error:
-            messagebox.showerror("Error", f"Error due to:{str(error)}", parent=self.root)
-            self.client.close()
+                messagebox.showerror("Error", f"Error due to:{str(error)}", parent=self.root)
+                self.client.close()
         except ConnectionResetError as error:
             messagebox.showerror("Error", f"Error due to:{str(error)}", parent=self.root)
             self.client.close()
             self.setting_socket()
+        # self.search_gold()
 
     def closing(self):
         if self.window != "socket":
@@ -287,7 +294,7 @@ class Client_handle:
                 self.client.send(bytes(DISCONNECT, COMMUNICATION_TYPE))
                 self.client.close()
 
-        self.root.destroy()
+        self.root.destroy()    
 
     def regclear(self):
         self.username.delete(0, END)

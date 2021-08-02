@@ -6,7 +6,7 @@ from PySide2.QtWidgets import QApplication
 from PIL import ImageTk
 
 #multiple client
-from threading import Thread
+from threading import Thread,Timer
 import threading
 
 #server use this module to request party webs to reponse gold price
@@ -409,7 +409,7 @@ class Ui_Server_handing(QWidget):
         th = Thread(target=self.accept_incoming_connections)
         th.setDaemon(False)
         th.start()
-        self.server.listen(5)
+        self.server.listen(10)
         
         #self.accept_incoming_connections()
     
@@ -417,6 +417,7 @@ class Ui_Server_handing(QWidget):
 
     def accept_incoming_connections(self):
         while True:
+            self.server.listen(5)
             client, client_address = self.server.accept()
             print(f"{client_address} has connected!")
             # client.send(bytes("Greetings from the cave! Now type your name and press enter!", "utf8"))
@@ -511,30 +512,19 @@ class Ui_Server_handing(QWidget):
 
                 client.send(bytes(str(buy) + "/" + str(sell),COMMUNICATION_TYPE))
 class data:
-    def get_Data(self):
+    def get_Data(self,query_insert):
         self.con =  mysql.connector.connect(host="localhost", user="root", password="Tuilawibu123@", database="gold_infor")
         self.cur = self.con.cursor()
-
-        #execute to insert
-        self.query_insert="""INSERT INTO gold_infor.gold_table(buy, sell, day, brand) VALUES(%s,%s,%s,%s)"""
-        #execute to update        
-        query_update = """ UPDATE gold_infor.gold_table
-                                SET buy = %s,sell=%s
-                                WHERE  day=%s AND brand =%s"""
-
-
-                
-
        
         edate = date.today()# end date
         sdate=edate-timedelta(30)  #start date
                     
         for i in range(31):
             day = sdate + timedelta(days=i)
-            self.getDataPerDay(day)
+            self.getDataPerDay(day,query_insert)
         print("done")
 
-    def getDataPerDay(self,day):
+    def getDataPerDay(self,day,ex):
         url=f'https://www.24h.com.vn/gia-vang-hom-nay-c425.html?d={day}'
                     #grabbing the page
         client=urllib.request.urlopen(url)
@@ -556,17 +546,56 @@ class data:
             date=str(day)
             data=(buy,sell,date,brand)
                         
-            self.cur.execute(self.query_insert,data)
+            self.cur.execute(ex,data)
             self.con.commit()       
             index_buy=index_buy+4
             index_sell=index_sell+4
+    def update_data(self,query_update): 
+        self.get_Data(query_update)
+
+
+class RepeatedTimer(object):
+    def __init__(self, interval, function, *args, **kwargs):
+        self._timer     = None
+        self.interval   = interval
+        self.function   = function
+        self.args       = args
+        self.kwargs     = kwargs
+        self.is_running = False
+        self.start()
+
+    def _run(self):
+        self.is_running = False
+        self.start()
+        self.function(*self.args, **self.kwargs)
+
+    def start(self):
+        if not self.is_running:
+            self._timer = Timer(self.interval, self._run)
+            self._timer.start()
+            self.is_running = True
+
+    def stop(self):
+        self._timer.cancel()
+        self.is_running = False
+
+
+
 if __name__=="__main__":
+    #execute to insert
+    query_insert="""INSERT INTO gold_infor.gold_table(buy, sell, day, brand) VALUES(%s,%s,%s,%s)"""
+        #execute to update        
+    query_update = """ UPDATE gold_infor.gold_table
+                                SET buy = %s,sell=%s
+                                WHERE  day=%s AND brand =%s"""
     #Ui_Server_handing()
     app = QApplication(sys.argv)
     window=SplashScreen()
     get_data=data()
-    new_thread=Thread(target=get_data.get_Data)
+    new_thread=Thread(target=get_data.get_Data, args=(query_insert,))
     new_thread.start()
     window.show()
+
+    update=RepeatedTimer(1800, get_data.update_data, query_update)
     sys.exit(app.exec_())
 

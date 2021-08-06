@@ -4,10 +4,11 @@ from tkinter import ttk
 from tkinter import messagebox
 from tkcalendar import *
 import datetime
+import time
 from PIL import ImageTk
 import socket
 
-#define type-communication between client and server
+# define type-communication between client and server
 Allow = "allow"
 Not_allow = "not_allowed"
 
@@ -23,6 +24,7 @@ FAIL = "0"
 ERROR = "-1"
 SECOND = 100
 MINUTE = 60 * SECOND
+
 
 class Client_handle:
     def __init__(self, root):
@@ -47,7 +49,8 @@ class Client_handle:
         frame_input = Frame(frame_bg, bg="white")
         frame_input.place(relx=0.5, rely=0.5, anchor="center", width=500, height=100)
 
-        connect_label = Label(frame_input, text="Input ip address: ", font=("Arial", 10, "bold", "italic"), fg="black", bg="white")
+        connect_label = Label(frame_input, text="Input ip address: ", font=("Arial", 10, "bold", "italic"), fg="black",
+                              bg="white")
         connect_label.place(relx=0.005, rely=0.5, anchor="w", width=110, height=35)
 
         self.input_ip = Entry(frame_input, font=("Comic Sans MS", 15, "bold"), bg="lightgray")
@@ -56,7 +59,8 @@ class Client_handle:
 
         self.PORT = 28999
         self.client = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        connect = Button(frame_input, text="CONNECT!", font=("Arial", 10, "bold"), cursor="hand2", command=self.setting_connection)
+        connect = Button(frame_input, text="CONNECT!", font=("Arial", 10, "bold"), cursor="hand2",
+                         command=self.setting_connection)
         connect.place(relx=0.8, rely=0.5, anchor="center", width=100, height=35)
 
     def setting_connection(self):
@@ -68,7 +72,7 @@ class Client_handle:
 
     def Loginform(self):
         self.window = "login"
-        
+
         Frame_login = Frame(self.root, bg="white")
         Frame_login.place(x=0, y=0, relheight=1, relwidth=1)
 
@@ -106,21 +110,33 @@ class Client_handle:
         self.email_txt.focus()
 
     def login(self):
-        
 
         if self.email_txt.get() == "" or self.password.get() == "":
             messagebox.showerror("Error", "All fields are required", parent=self.root)
         else:
             try:
-                #send(
+                # send(
                 self.client.send(bytes(LOGIN +
                                        "/" + str(self.email_txt.get()) +
                                        "/" + str(self.password.get()),
                                        COMMUNICATION_TYPE))
-                #recieve
+                # recieve
                 message = str(self.client.recv(BUFSIZE).decode(COMMUNICATION_TYPE))
-                print (message)
-                if message == SUCCESS:
+                while True:
+                    if message==None:
+                        self.client.send(bytes(LOGIN +
+                                       "/" + str(self.email_txt.get()) +
+                                       "/" + str(self.password.get()),
+                                       COMMUNICATION_TYPE))
+                    else:
+                        break
+                    time.sleep(1)
+                print(message)
+                if message == DISCONNECT:
+                    messagebox.showinfo("Server has closed!")
+                    self.client.close()
+                    self.setting_socket()
+                elif message == SUCCESS:
                     self.search_gold()
                 elif message == FAIL:
                     messagebox.showerror('Error', 'Invalid Username And Password', parent=self.root)
@@ -135,10 +151,10 @@ class Client_handle:
                 messagebox.showerror("Error", f"Error due to:{str(error)}", parent=self.root)
                 self.client.close()
                 self.setting_socket()
-    
+
     def Registerform(self):
         self.window = "regist"
-        
+
         Frame_login1 = Frame(self.root, bg="white")
         Frame_login1.place(x=0, y=0, relheight=1, relwidth=1)
         self.img = ImageTk.PhotoImage(file=r"image/background.jpg")
@@ -196,7 +212,23 @@ class Client_handle:
                                        COMMUNICATION_TYPE))
                 # recieve
                 message = str(self.client.recv(BUFSIZE).decode(COMMUNICATION_TYPE))
-                if message == FAIL:
+
+                while True:
+                    if message==None:
+                        self.client.send(bytes(REGISTER +
+                                       "/" + str(self.username.get()) +
+                                       "/" + str(self.password.get()) +
+                                       "/" + str(self.emailid.get()) +
+                                       "/" + str(self.confirmpassword.get()),
+                                       COMMUNICATION_TYPE))
+                    else:
+                        break
+                    time.sleep(1)
+                if message == DISCONNECT:
+                    messagebox.showinfo("Server has closed!")
+                    self.client.close()
+                    self.setting_socket()
+                elif message == FAIL:
                     messagebox.showerror("Error", "User already Exist,Please try with another Email", parent=self.root)
                     self.regclear()
                     self.username.focus()
@@ -213,7 +245,7 @@ class Client_handle:
 
     def search_gold(self):
         self.window = "search"
-        
+
         frame_user = Frame(self.root, bg="white")
         frame_user.place(x=0, y=0, relheight=1, relwidth=1)
         self.img = ImageTk.PhotoImage(file=r"image/gold2.jpg")
@@ -241,9 +273,9 @@ class Client_handle:
 
         user_label2 = Label(user_input, text="DATE", font=("calibre", 20, "bold"), fg="red", bg="white")
         user_label2.place(x=45, y=180)
-        self.cal = Calendar(user_input,mindate=datetime.date(day=1, month=1, year=2018), maxdate=datetime.date.today(),
+        self.cal = Calendar(user_input, mindate=datetime.date(day=1, month=1, year=2018), maxdate=datetime.date.today(),
                             date_pattern="yyyy-mm-dd", selectmode="day")
-                            
+
         self.cal.selection_clear()
         self.cal.place(x=45, y=220, height=150, width=300)
 
@@ -253,10 +285,10 @@ class Client_handle:
         get_date = Button(user_input, text="Get Date", command=grad_date).place(x=265, y=380, width=80, height=35)
         date = Label(user_input, text="")
         date.place(x=45, y=380, width=215, height=35)
-        #need to fix
+        # need to fix
         self.ans = Label(user_input, borderwidth=2, relief="groove", bg="white")
         self.ans.place(relx=0.5, rely=0.2, width=400, height=300)
-        #-----------------------------------------------------------------------
+        # -----------------------------------------------------------------------
         searching = Button(user_input, text="SEARCHING", cursor="hand2", command=self.search)
         searching.place(relx=0.5, rely=0.95, anchor="s", width=500, height=35)
 
@@ -270,22 +302,32 @@ class Client_handle:
 
         try:
             self.client.send(bytes(GOLD_SEARCHING + "/" +
-                                       self.gold_type.get() + "/" +
-                                       self.cal.get_date(), COMMUNICATION_TYPE))
+                                   self.gold_type.get() + "/" +
+                                   self.cal.get_date(), COMMUNICATION_TYPE))
             ret = self.client.recv(BUFSIZE).decode(COMMUNICATION_TYPE).split("/")
-            print(ret)
+            while True:
+                if ret==None:
+                    self.client.send(bytes(GOLD_SEARCHING + "/" +
+                                   self.gold_type.get() + "/" +
+                                   self.cal.get_date(), COMMUNICATION_TYPE))
+                else:
+                    break
+                time.sleep(1)
+            if ret == DISCONNECT:
+                messagebox.showinfo("Server has closed!")
+                self.client.close()
+                self.setting_socket()
+
             out = "Date: " + date + "\nType: " + type + "\nBuying-price: " + ret[0] + "VND\nSelling-price: " + ret[1] + "VND"
             if ret:
-                self.ans.config(text=out, font="Arial 20 bold", fg="black") 
-
+                self.ans.config(text=out, font="Arial 20 bold", fg="black")
         except ConnectionAbortedError as error:
-                messagebox.showerror("Error", f"Error due to:{str(error)}", parent=self.root)
-                self.client.close()
+            messagebox.showerror("Error", f"Error due to:{str(error)}", parent=self.root)
+            self.client.close()
         except ConnectionResetError as error:
             messagebox.showerror("Error", f"Error due to:{str(error)}", parent=self.root)
             self.client.close()
             self.setting_socket()
-        # self.search_gold()
 
     def closing(self):
         if self.window != "socket":
@@ -294,7 +336,7 @@ class Client_handle:
                 self.client.send(bytes(DISCONNECT, COMMUNICATION_TYPE))
                 self.client.close()
 
-        self.root.destroy()    
+        self.root.destroy()
 
     def regclear(self):
         self.username.delete(0, END)
@@ -305,6 +347,7 @@ class Client_handle:
     def loginclear(self):
         self.email_txt.delete(0, END)
         self.password.delete(0, END)
+
 
 if __name__ == "__main__":
     root = Tk()

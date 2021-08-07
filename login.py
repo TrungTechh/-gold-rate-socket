@@ -4,6 +4,7 @@ from tkinter import ttk
 from tkinter import messagebox
 from tkcalendar import *
 import datetime
+import time
 from PIL import ImageTk
 import socket
 
@@ -28,7 +29,7 @@ MINUTE = 60 * SECOND
 class Client_handle:
     def __init__(self, root):
         self.root = root
-        self.root.title("Login and registration system for Apps")
+        self.root.title("Gold Searching")
         self.root.geometry("1920x1080+0+0")
         self.window = None
         # self.root.resizable(False, False)
@@ -94,10 +95,6 @@ class Client_handle:
         self.password = Entry(frame_input, font=("Comic Sans MS", 15, "bold"), show='*', bg='lightgray')
         self.password.place(x=30, y=245, width=270, height=35)
 
-        btn1 = Button(frame_input, text="forgot password?", cursor='hand2', font=('calibri', 10), bg='white',
-                      fg='black', bd=0)
-        btn1.place(x=125, y=305)
-
         btn2 = Button(frame_input, text="Login", command=self.login, cursor="hand2", font=("Comic Sans MS", 15),
                       fg="white", bg="orangered", bd=0, width=15, height=1)
         btn2.place(x=90, y=340)
@@ -121,6 +118,15 @@ class Client_handle:
                                        COMMUNICATION_TYPE))
                 # recieve
                 message = str(self.client.recv(BUFSIZE).decode(COMMUNICATION_TYPE))
+                while True:
+                    if message==None:
+                        self.client.send(bytes(LOGIN +
+                                       "/" + str(self.email_txt.get()) +
+                                       "/" + str(self.password.get()),
+                                       COMMUNICATION_TYPE))
+                    else:
+                        break
+                    time.sleep(1)
                 print(message)
                 if message == DISCONNECT:
                     messagebox.showinfo("Server has closed!")
@@ -202,6 +208,18 @@ class Client_handle:
                                        COMMUNICATION_TYPE))
                 # recieve
                 message = str(self.client.recv(BUFSIZE).decode(COMMUNICATION_TYPE))
+
+                while True:
+                    if message==None:
+                        self.client.send(bytes(REGISTER +
+                                       "/" + str(self.username.get()) +
+                                       "/" + str(self.password.get()) +
+                                       "/" + str(self.emailid.get()) +
+                                       "/" + str(self.confirmpassword.get()),
+                                       COMMUNICATION_TYPE))
+                    else:
+                        break
+                    time.sleep(1)
                 if message == DISCONNECT:
                     messagebox.showinfo("Server has closed!")
                     self.client.close()
@@ -251,7 +269,7 @@ class Client_handle:
 
         user_label2 = Label(user_input, text="DATE", font=("calibre", 20, "bold"), fg="red", bg="white")
         user_label2.place(x=45, y=180)
-        self.cal = Calendar(user_input, mindate=datetime.date(day=1, month=1, year=2018), maxdate=datetime.date.today(),
+        self.cal = Calendar(user_input, maxdate=datetime.date.today(), mindate= datetime.date.today() - datetime.timedelta(30),
                             date_pattern="yyyy-mm-dd", selectmode="day")
 
         self.cal.selection_clear()
@@ -283,6 +301,14 @@ class Client_handle:
                                    self.gold_type.get() + "/" +
                                    self.cal.get_date(), COMMUNICATION_TYPE))
             ret = self.client.recv(BUFSIZE).decode(COMMUNICATION_TYPE).split("/")
+            while True:
+                if ret==None:
+                    self.client.send(bytes(GOLD_SEARCHING + "/" +
+                                   self.gold_type.get() + "/" +
+                                   self.cal.get_date(), COMMUNICATION_TYPE))
+                else:
+                    break
+                time.sleep(1)
             if ret == DISCONNECT:
                 messagebox.showinfo("Server has closed!")
                 self.client.close()

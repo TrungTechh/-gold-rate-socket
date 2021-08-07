@@ -43,6 +43,7 @@ from PySide2.QtGui import (QBrush, QColor, QConicalGradient, QCursor, QFont, QFo
 from PySide2.QtWidgets import *
 
 from PyQt5.QtCore import QTimer
+
 ##########################################################################
 
 Allow = "allow"
@@ -61,6 +62,8 @@ MINUTE = 60 * SECOND
 # GLOBALS
 
 counter = 0
+
+
 class SplashScreen(QWidget):
     def __init__(self):
         super().__init__()
@@ -212,7 +215,8 @@ class Ui_Server_handing(QWidget):
 
     def __init__(self):
         self.addresses = {}
-
+        self.clients = {}
+        self.user = {}
         super().__init__()
 
         self.resize(1014, 686)
@@ -329,16 +333,17 @@ class Ui_Server_handing(QWidget):
         self.text_ip.setFont(font2)
         self.text_ip.setStyleSheet(u"background-color: rgb(255, 255, 255);")
 
-        #------------------------need to develop-------------------------------
+        # ------------------------need to develop-------------------------------
 
         self.stop_btn_ = QPushButton(self.frame_left)
         self.stop_btn_.setObjectName(u"stop_btn_")
         self.stop_btn_.setGeometry(QRect(40, 350, 111, 31))
         self.stop_btn_.setStyleSheet(u"\n"
                                      "background-color: rgb(230, 179, 255);")
+        self.stop_btn_.clicked.connect(self.close_server)
         self.stop_btn_.clicked.connect(self.close)
 
-        #----------------------------------------------------------------------
+        # ----------------------------------------------------------------------
 
         self.horizontalLayout.addWidget(self.frame_left)
 
@@ -399,9 +404,9 @@ class Ui_Server_handing(QWidget):
         self.label_4.setText(QCoreApplication.translate("Form",
                                                         u"<html><head/><body><p><span style=\" font-size:12pt; font-weight:600; color:#fbbeff;\">PORT: </span></p></body></html>",
                                                         None))
-        #------------------------need to develop------------------------------------
+        # ------------------------need to develop------------------------------------
         self.stop_btn_.setText(QCoreApplication.translate("Form", u"Stop", None))
-        #---------------------------------------------------------------------------
+        # ---------------------------------------------------------------------------
 
     def setting_socket(self):
         self.PORT = 28999
@@ -419,7 +424,12 @@ class Ui_Server_handing(QWidget):
         th = Thread(target=self.accept_incoming_connections)
         th.setDaemon(False)
         th.start()
+        # self.server.listen(10)
         # self.accept_incoming_connections()
+
+    def close_server(self):
+        self.server.send(bytes(DISCONNECT, COMMUNICATION_TYPE))
+        self.server.close()
 
     def accept_incoming_connections(self):
         while True:
@@ -434,8 +444,6 @@ class Ui_Server_handing(QWidget):
 
     def handle_client(self, client):
         while True:
-            # if self.clients[client] == True:
-            #     break
             try:
                 message = str(client.recv(BUFSIZE).decode(COMMUNICATION_TYPE))
             except ConnectionResetError:
@@ -448,6 +456,7 @@ class Ui_Server_handing(QWidget):
                 client.close()
             self.message = message.split("/")  # infor user
             choice = self.message[0]
+
             if choice == LOGIN:
                 # login handle
                 emailid = self.message[1]
@@ -458,7 +467,9 @@ class Ui_Server_handing(QWidget):
                     cur = con.cursor()
                     cur.execute('select * from user_table where emailid=%s and password=%s', (emailid, password))
                     row = cur.fetchone()
-                    self.list_infor.addItem(str(emailid) + " with " + str(self.addresses[client]) + " connected")
+                    self.user[client] = emailid
+                    self.list_infor.addItem(
+                        str(self.user[client]) + " with " + str(self.addresses[client]) + " connected")
                     if row == None:
                         client.send(bytes(FAIL, COMMUNICATION_TYPE))
                     else:
@@ -505,25 +516,25 @@ class Ui_Server_handing(QWidget):
                                                database="gold_infor")
                 cur2 = con2.cursor()
 
-                cur2.execute("SELECT * FROM gold_infor.gold_table WHERE day = %s AND brand = %s", (self.date, self.type))
+                cur2.execute("SELECT * FROM gold_infor.gold_table WHERE day = %s AND brand = %s",
+                             (self.date, self.type))
                 result = cur2.fetchone()
                 print(result)
-                buy = result[2]
-                sell = result[3]
+                buy = result[0]
+                sell = result[1]
                 # print(self.buy,self.sell)
                 client.send(bytes(str(buy) + "/" + str(sell), COMMUNICATION_TYPE))
             elif choice == DISCONNECT:
                 print(f"{self.addresses[client]} disconnected")
+                if client in self.user.keys():
+                    self.list_infor.addItem(
+                        str(self.user[client]) + " with " + str(self.addresses[client]) + " disconnected")
+                    self.list_infor.addItem()
+                    del self[client]
                 del self.addresses[client]
                 client.close()
+                # self.server.disconect()
                 break
-
-    # def stop(self):
-    #     for client in self.addresses:
-    #         client.send(bytes(DISCONNECT, COMMUNICATION_TYPE))
-    #         self.clients[client] = True
-
-
 
 class data:
     def get_Data(self, query_insert):

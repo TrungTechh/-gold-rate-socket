@@ -32,6 +32,7 @@ from random import seed, randint
 # GUI
 #########################################################################
 import sys
+import os
 from typing import Counter
 
 # IMPORTING ALL THE NECESSERY PYSIDE2 MODULES FOR OUR APPLICATION.
@@ -43,7 +44,6 @@ from PySide2.QtGui import (QBrush, QColor, QConicalGradient, QCursor, QFont, QFo
 from PySide2.QtWidgets import *
 
 from PyQt5.QtCore import QTimer
-
 ##########################################################################
 
 Allow = "allow"
@@ -59,11 +59,9 @@ FAIL = "0"
 ERROR = "-1"
 SECOND = 100
 MINUTE = 60 * SECOND
+
 # GLOBALS
-
 counter = 0
-
-
 class SplashScreen(QWidget):
     def __init__(self):
         super().__init__()
@@ -162,7 +160,7 @@ class SplashScreen(QWidget):
         self.timer = QtCore.QTimer()
         self.timer.timeout.connect(self.progress)
         # TIMER IN MILLISECONDS
-        self.timer.start(35)
+        self.timer.start(120)
 
         # CHANGE DESCRIPTION
 
@@ -170,9 +168,9 @@ class SplashScreen(QWidget):
         self.label_description.setText("<strong>WELCOME</strong> TO MY APPLICATION")
 
         # Change Texts
-        QtCore.QTimer.singleShot(1500, lambda: self.label_description.setText("<strong>LOADING</strong> DATABASE"))
+        QtCore.QTimer.singleShot(1500, lambda: self.label_description.setText("<strong>LOADING</strong> USER INTERFACE "))
         QtCore.QTimer.singleShot(3000,
-                                 lambda: self.label_description.setText("<strong>LOADING</strong> USER INTERFACE"))
+                                 lambda: self.label_description.setText("<strong>LOADING</strong> DATABASE "))
 
         ## SHOW ==> MAIN WINDOW
         ########################################################################
@@ -215,10 +213,11 @@ class Ui_Server_handing(QWidget):
 
     def __init__(self):
         self.addresses = {}
-        self.clients = {}
-        self.user = {}
+        self.clients={}
+        self.user={}
         super().__init__()
 
+        # setupUi
         self.resize(1014, 686)
         self.setStyleSheet(u"\n"
                            "/*VERTICAL SCROLLBAR*/\n"
@@ -333,7 +332,7 @@ class Ui_Server_handing(QWidget):
         self.text_ip.setFont(font2)
         self.text_ip.setStyleSheet(u"background-color: rgb(255, 255, 255);")
 
-        # ------------------------need to develop-------------------------------
+        #------------------------need to develop-------------------------------
 
         self.stop_btn_ = QPushButton(self.frame_left)
         self.stop_btn_.setObjectName(u"stop_btn_")
@@ -343,7 +342,7 @@ class Ui_Server_handing(QWidget):
         self.stop_btn_.clicked.connect(self.close_server)
         self.stop_btn_.clicked.connect(self.close)
 
-        # ----------------------------------------------------------------------
+        #----------------------------------------------------------------------
 
         self.horizontalLayout.addWidget(self.frame_left)
 
@@ -394,8 +393,7 @@ class Ui_Server_handing(QWidget):
         QMetaObject.connectSlotsByName(self)
         self.setting_socket()
 
-    # setupUi
-
+    
     def retranslateUi(self):
         self.setWindowTitle(QCoreApplication.translate("Form", u"Server", None))
         self.label_3.setText(QCoreApplication.translate("Form",
@@ -404,9 +402,9 @@ class Ui_Server_handing(QWidget):
         self.label_4.setText(QCoreApplication.translate("Form",
                                                         u"<html><head/><body><p><span style=\" font-size:12pt; font-weight:600; color:#fbbeff;\">PORT: </span></p></body></html>",
                                                         None))
-        # ------------------------need to develop------------------------------------
+        #------------------------need to develop------------------------------------
         self.stop_btn_.setText(QCoreApplication.translate("Form", u"Stop", None))
-        # ---------------------------------------------------------------------------
+        #---------------------------------------------------------------------------
 
     def setting_socket(self):
         self.PORT = 28999
@@ -414,6 +412,7 @@ class Ui_Server_handing(QWidget):
         self.text_ip.setText(str(self.SERVER))
         self.text_port.setText("  " + str(self.PORT))
         self.server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        self.server.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         self.server.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         self.server.bind((self.SERVER, self.PORT))
 
@@ -424,9 +423,9 @@ class Ui_Server_handing(QWidget):
         th = Thread(target=self.accept_incoming_connections)
         th.setDaemon(False)
         th.start()
-        # self.server.listen(10)
+        self.server.listen(10)
         # self.accept_incoming_connections()
-
+        
     def close_server(self):
         self.server.send(bytes(DISCONNECT, COMMUNICATION_TYPE))
         self.server.close()
@@ -444,6 +443,8 @@ class Ui_Server_handing(QWidget):
 
     def handle_client(self, client):
         while True:
+            # if self.clients[client] == True:
+            #     break
             try:
                 message = str(client.recv(BUFSIZE).decode(COMMUNICATION_TYPE))
             except ConnectionResetError:
@@ -456,20 +457,19 @@ class Ui_Server_handing(QWidget):
                 client.close()
             self.message = message.split("/")  # infor user
             choice = self.message[0]
-
+            
             if choice == LOGIN:
                 # login handle
                 emailid = self.message[1]
                 password = self.message[2]
                 try:
-                    con = mysql.connector.connect(host="localhost", user="root", password="Chelinh289",
+                    con = mysql.connector.connect(host="localhost", user="root", password="Tuilawibu123@",
                                                   database="gold_infor")
                     cur = con.cursor()
                     cur.execute('select * from user_table where emailid=%s and password=%s', (emailid, password))
                     row = cur.fetchone()
-                    self.user[client] = emailid
-                    self.list_infor.addItem(
-                        str(self.user[client]) + " with " + str(self.addresses[client]) + " connected")
+                    self.user[client]=emailid
+                    self.list_infor.addItem(str(self.user[client]) + " with " + str(self.addresses[client]) + " connected")
                     if row == None:
                         client.send(bytes(FAIL, COMMUNICATION_TYPE))
                     else:
@@ -484,7 +484,7 @@ class Ui_Server_handing(QWidget):
                 emailid = self.message[3]
                 confirmpassword = self.message[4]
                 try:
-                    con1 = mysql.connector.connect(host="localhost", user="root", password="Chelinh289",
+                    con1 = mysql.connector.connect(host="localhost", user="root", password="Tuilawibu123@",
                                                    database="gold_infor")
                     cur1 = con1.cursor()
                     cur1.execute("SELECT emailid FROM gold_infor.user_table")
@@ -495,7 +495,7 @@ class Ui_Server_handing(QWidget):
                         client.send(bytes(FAIL, COMMUNICATION_TYPE))
                     else:
                         # creat new connection
-                        con = mysql.connector.connect(host="localhost", user="root", password="Chelinh289",
+                        con = mysql.connector.connect(host="localhost", user="root", password="Tuilawibu123@",
                                                       database="gold_infor")
                         cur2 = con.cursor()
                         cur2.execute(
@@ -512,16 +512,15 @@ class Ui_Server_handing(QWidget):
                 self.type = self.message[1]
                 self.date = self.message[2]
                 print(self.type, self.date)
-                con2 = mysql.connector.connect(host="localhost", user="root", password="Chelinh289",
+                con2 = mysql.connector.connect(host="localhost", user="root", password="Tuilawibu123@",
                                                database="gold_infor")
                 cur2 = con2.cursor()
 
-                cur2.execute("SELECT * FROM gold_infor.gold_table WHERE day = %s AND brand = %s",
-                             (self.date, self.type))
+                cur2.execute("SELECT * FROM gold_infor.gold_table WHERE day = %s AND brand = %s", (self.date, self.type))
                 result = cur2.fetchone()
                 print(result)
-                buy = result[0]
-                sell = result[1]
+                buy = result[2]
+                sell = result[3]
                 # print(self.buy,self.sell)
                 client.send(bytes(str(buy) + "/" + str(sell), COMMUNICATION_TYPE))
             elif choice == DISCONNECT:
@@ -536,25 +535,31 @@ class Ui_Server_handing(QWidget):
                 # self.server.disconect()
                 break
 
+    # def stop(self):
+    #     for client in self.addresses:
+    #         client.send(bytes(DISCONNECT, COMMUNICATION_TYPE))
+    #         self.clients[client] = True
+
+
 class data:
     def get_Data(self, query_insert):
-        self.con = mysql.connector.connect(host="localhost", user="root", password="Chelinh289",
+        self.con = mysql.connector.connect(host="localhost", user="root", password="Tuilawibu123@",
                                            database="gold_infor")
         self.cur = self.con.cursor()
-
         edate = date.today()  # end date
         sdate = edate - timedelta(30)  # start date
 
         for i in range(31):
             day = sdate + timedelta(days=i)
             self.getDataPerDay(day, query_insert)
+        self.con.close()
         print("done")
 
     def getDataPerDay(self, day, ex):
         url = f'https://www.24h.com.vn/gia-vang-hom-nay-c425.html?d={day}'
         # grabbing the page
-        client = urllib.request.urlopen(url)
-        page_html = client.read()
+        cli = urllib.request.urlopen(url)
+        page_html = cli.read()
 
         # html parsing
         page_soup = BeautifulSoup(page_html, "html.parser")
@@ -578,8 +583,44 @@ class data:
             index_sell = index_sell + 4
 
     def update_data(self, query_update):
-        self.get_Data(query_update)
+        self.con1 = mysql.connector.connect(host="localhost", user="root", password="Tuilawibu123@",
+                                           database="gold_infor")
+        self.cur1 = self.con1.cursor()
+        edate = date.today()  # end date
+        sdate = edate - timedelta(30)  # start date
 
+        for i in range(31):
+            day = sdate + timedelta(days=i)
+            self.getDataPerDay_U(day, query_update)
+        
+        print("done")
+    def getDataPerDay_U(self, day, ex):
+        url = f'https://www.24h.com.vn/gia-vang-hom-nay-c425.html?d={day}'
+        # grabbing the page
+        cli = urllib.request.urlopen(url)
+        page_html = cli.read()
+
+        # html parsing
+        page_soup = BeautifulSoup(page_html, "html.parser")
+
+        # grab price
+        prices = page_soup.find("div", {"class": "tabBody mgbt15"}).find_all("span")
+        index_buy = 0
+        index_sell = 2
+        brands = page_soup.find("div", {"class": "tabBody mgbt15"}).find_all("h2")
+
+        for i in brands:
+            brand = i.text
+            buy = prices[index_buy].text
+            sell = prices[index_sell].text
+            date = str(day)
+            data = (buy, sell, date, brand)
+
+            self.cur1.execute(ex, data)
+            self.con1.commit()
+            index_buy = index_buy + 4
+            index_sell = index_sell + 4
+    
 
 class RepeatedTimer(object):
     def __init__(self, interval, function, *args, **kwargs):
@@ -605,7 +646,16 @@ class RepeatedTimer(object):
     def stop(self):
         self._timer.cancel()
         self.is_running = False
+        
+def resource_path(relative_path):
+    """ Get absolute path to resource, works for dev and for PyInstaller """
+    try:
+        # PyInstaller creates a temp folder and stores path in _MEIPASS
+        base_path = sys._MEIPASS
+    except Exception:
+        base_path = os.path.abspath(".")
 
+    return os.path.join(base_path, relative_path)
 
 if __name__ == "__main__":
     # execute to insert
@@ -615,10 +665,10 @@ if __name__ == "__main__":
                                 SET buy = %s,sell=%s
                                 WHERE  day=%s AND brand =%s"""
     # Ui_Server_handing()
-    app = QApplication(sys.argv)
-    window = SplashScreen()
     get_data = data()
     new_thread = Thread(target=get_data.get_Data, args=(query_insert,))
+    app = QApplication(sys.argv)
+    window = SplashScreen()
     new_thread.start()
     window.show()
 

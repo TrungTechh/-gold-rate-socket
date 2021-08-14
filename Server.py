@@ -578,43 +578,7 @@ class data:
             index_sell = index_sell + 4
 
     def update_data(self, query_update):
-        self.con1 = mysql.connector.connect(host="localhost", user="root", password="Tuilawibu123@",
-                                           database="gold_infor")
-        self.cur1 = self.con1.cursor()
-        edate = date.today()  # end date
-        sdate = edate - timedelta(30)  # start date
-
-        for i in range(31):
-            day = sdate + timedelta(days=i)
-            self.getDataPerDay_U(day, query_update)
-        
-        print("done")
-    def getDataPerDay_U(self, day, ex):
-        url = f'https://www.24h.com.vn/gia-vang-hom-nay-c425.html?d={day}'
-        # grabbing the page
-        client = urllib.request.urlopen(url)
-        page_html = client.read()
-
-        # html parsing
-        page_soup = BeautifulSoup(page_html, "html.parser")
-
-        # grab price
-        prices = page_soup.find("div", {"class": "tabBody mgbt15"}).find_all("span")
-        index_buy = 0
-        index_sell = 2
-        brands = page_soup.find("div", {"class": "tabBody mgbt15"}).find_all("h2")
-
-        for i in brands:
-            brand = i.text
-            buy = prices[index_buy].text
-            sell = prices[index_sell].text
-            date = str(day)
-            data = (buy, sell, date, brand)
-
-            self.cur1.execute(ex, data)
-            self.con1.commit()
-            index_buy = index_buy + 4
-            index_sell = index_sell + 4
+        self.get_Data(query_update)
 
 
 class RepeatedTimer(object):

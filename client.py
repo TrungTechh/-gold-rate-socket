@@ -301,6 +301,8 @@ class Client_handle:
                                    self.gold_type.get() + "/" +
                                    self.cal.get_date(), COMMUNICATION_TYPE))
             ret = self.client.recv(BUFSIZE).decode(COMMUNICATION_TYPE).split("/")
+            print(ret)
+            
             while True:
                 if ret==None:
                     self.client.send(bytes(GOLD_SEARCHING + "/" +
@@ -309,7 +311,8 @@ class Client_handle:
                 else:
                     break
                 time.sleep(1)
-            if ret == DISCONNECT:
+            
+            if ret[0] == DISCONNECT or len(ret)==0:
                 messagebox.showinfo("Server has closed!")
                 self.client.close()
                 self.setting_socket()
